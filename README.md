@@ -1,5 +1,5 @@
-# fluid-forge
-This collection implements numerical solvers for fluid dynamics simulations, currently only focusing on the fundamental conservation laws of mass and momentum.
+# FlowForge: Practical Fluid Solver Examples
+This is my collection numerical solvers for fluid dynamics simulations, currently only focusing on the fundamental conservation laws of mass and momentum.
 
 ## Fluid Flow Algorithms: Working Examples
 

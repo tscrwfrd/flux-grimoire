@@ -1,12 +1,19 @@
 program main
-  use fluid_forge, only: say_hello, fct
-  use run1d, only: sim1d
-  use run1d_dam_break, only: dam1d
+  use fluid_forge, only: say_hello
+  use fluid_1d_models, only: dam_break, square_wave
   implicit none
   integer :: val
 
   call say_hello()
 
-  val = sim1d()
-  val = dam1d()
+  val = square_wave()
+  if (val /= 1) then
+    write(*, '(5X,A,/)') "Boo!!! square wave 1d unsuccessful..."
+  end if
+  
+  val = dam_break()
+  if (val /= 1) then
+    write(*, '(5X,A,/)') "Boo!!! Dam break 1d unsuccessful..."
+  end if
+
 end program main

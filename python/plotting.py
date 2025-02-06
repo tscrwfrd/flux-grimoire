@@ -18,7 +18,7 @@ def plot_fct_dam_1d():
     (line2,) = ax2.plot([], [], "r-", linewidth=3)
 
     ax1.set_xlim(0, ncols)
-    ax1.set_ylim(0, 15)
+    ax1.set_ylim(0, 25)
 
     ax2.set_ylim(np.min(data[1::2]), np.max(data[1::2]))
     ax2.set_ylim(0, 30)

@@ -22,12 +22,14 @@ Numerical methods are written in Fortran and plotting routines are implemented i
 ```bash
 fpm run
 ```
-A sucessful run will produce csv file `fct_out.csv` in the root directory.
+Currently a sucessful run will produce csv file outputs from 1D models in the `data` directory:
+- `square_wave.csv` show a square wave being transported with fct
+- `dam_break.csv` shows an imaginary dam break using operator splitting
 
-The easiest way to run the python plotting script is 
-getting a virtual environment set-up with [uv](https://docs.astral.sh/uv/) and running:
+Gif animations of model outputs can be produced by running the python plotting script. 
+Get a virtual environment set-up with [uv](https://docs.astral.sh/uv/) and run:
+
 ```bash
 uv sync
-python python/plot_fct.py
+python python/plotting.py
 ``` 
-This produces a gif animation of the data in `fct_out.csv`

@@ -1,5 +1,5 @@
 program check
 implicit none
 
-print *, "Put some tests in here!"
+print *, "I might put some tests in here later!"
 end program check

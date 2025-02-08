@@ -167,11 +167,12 @@ contains
 
 
     do t = 1, 1000
-      prs = (gamma-1.0)*rho*(eng-0.5*vel**2)
+      
+      ! prs = (gamma - 1.0)*rho(i)*(eng(i) - 0.5*vel(i)**2)
       cs = sqrt(gamma*prs/rho)
 
       dt = cfl*dx/maxval(abs(vel) + cs)
-      call lax_wendroff(rho, vel, eng, nx, dt, dx)
+      call lax_wendroff(rho, vel, prs, nx, dt, dx)
 
 
       if (mod(t, 10) == 0) then 

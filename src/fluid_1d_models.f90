@@ -136,6 +136,9 @@ contains
 
   end function dam_break
 
+  !> The sod shock problem uses the lax-wendroff(LW) method. Although LW is 
+  !> good for smooth wave flows, it falls a little short for shock wave type 
+  !> scenarios.   
   function sod_shock() result(rtnvalue)
     integer(int32) :: rtnvalue, t, i, funit, rc
     integer(int32), parameter :: nx = 504
@@ -149,9 +152,7 @@ contains
     prs(253:) = 0.1
     vel = 0.0
     eng = prs/((gamma - 1.0)*rho) + 0.5*vel**2
-    dx = 0.1
   
-
     dx = 0.5 
     cfl = 0.45
 

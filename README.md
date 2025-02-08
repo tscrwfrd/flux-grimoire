@@ -14,7 +14,15 @@ The [Flux Corrected Transport](https://en.wikipedia.org/wiki/Flux-corrected_tran
 
 - Kuzmin, D., Löhner, R., & Turek, S. (Eds.). (2012). Flux-corrected transport: principles, algorithms, and applications. Springer Science & Business Media.
 
-**The method is used by propagating a square wave across a structured grid.**
+#### Lax-Wendroff
+The [Lax-Wendroff](https://en.wikipedia.org/wiki/Lax%E2%80%93Wendroff_method) The Lax-Wendroff method was introduced by Peter Lax and Burton Wendroff in 1960, and was one of the first second-order numerical schemes developed for solving hyperbolic partial differential equations. SO many good refernces exist, but these are the references I reviewed for this implementation: 
+- Lax, P., & Wendroff, B. (2005). [Systems of conservation laws](https://doi.org/10.1002/cpa.3160130205). In Selected Papers Volume I (pp. 263-283). Springer, New York, NY.
+- Toro, E. F. (2013). Riemann solvers and numerical methods for fluid dynamics: a practical introduction. Springer Science & Business Media.
+- LeVeque, R. J., & Leveque, R. J. (1992). Numerical methods for conservation laws (Vol. 214). Basel: Birkhäuser.
+
+
+#### Lax–Friedrichs
+(TBA)
 
 ### Running the code
 

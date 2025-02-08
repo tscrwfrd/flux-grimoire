@@ -142,7 +142,29 @@ contains
         
   end subroutine fct
 
-
+  !> The Lax-Wendroff method is a second-order accurate scheme that can be used 
+  !> to solve lienar advection (hyperbolic ∂u/∂t + a∂u/∂x = 0) equation. This 
+  !> method suffers from numerical dispersion when dealing with numerical 
+  !> discontinuities. The method is captured through two steps:
+  !> (Richtmyer)
+  !> (1) Half steps 
+  !>         Uh_(i+1/2) = 0.5*(U_i+1 + U_i) - 
+  !>                             0.5*Δt/Δx(f(U_i+1) - f(U_i))
+  !>         Uh_(i-1/2) = 0.5*(U_i + U_i-1) - 
+  !>                             0.5*Δt/Δx(f(U_i) - f(U_i-1))
+  !> (2) Full step
+  !>         U^t+1 = U^t - Δt/Δx(f(Uh_i+1/2) - f(Uh_i-1/2))
+  !> 
+  !> **NOTE** Two padded cells for the boundaries.
+  !> 
+  !> 
+  !> A great desciption of the method can be found on wikipedia:
+  !> https://en.wikipedia.org/wiki/Lax%E2%80%93Wendroff_method
+  !> 
+  !> and here:
+  !>   Toro, E. F. (2013). Riemann solvers and numerical methods for fluid 
+  !>   dynamics: a practical introduction. Springer Science & Business Media.
+  !>   
   subroutine lax_wendroff(rho, vel, eng, nx, dt, dx)
     integer, intent(in) :: nx
     real(real64), intent(in) :: dt, dx
@@ -158,6 +180,7 @@ contains
     W(:, 3) = rho*eng
 
     do i = 3, nx - 2
+      ! Fluxes 
       ! j-1
       prs = (gamma - 1.0)*rho(i-1)*(eng(i-1) - 0.5*vel(i-1)**2)
       flux(1) = rho(i-1)*vel(i-1)
@@ -175,7 +198,8 @@ contains
       flux(7) = rho(i+1)*vel(i+1)
       flux(8) = rho(i+1)*vel(i+1)**2 + prs
       flux(9) = vel(i+1)*(rho(i+1)*eng(i+1) + prs)
-      
+
+      ! half time step
       uph = 0.5*(W(i, :) + W(i+1, :)) -   &
             dt/(2.0*dx)*(flux(7:9) - flux(4:6))
       umh = 0.5*(W(i, :) + W(i-1, :)) -   &
@@ -197,7 +221,7 @@ contains
       flux(5) = umh(1)*umh(2)**2 + prs
       flux(6) = umh(2)*(umh(1)*umh(3) + prs)
 
-      ! corrector
+      ! Full time step
       U(i) = W(i, 1) - dt/dx*(flux(1) - flux(4))
       V(i) = W(i, 2) - dt/dx*(flux(2) - flux(5))
       E(i) = W(i, 3) - dt/dx*(flux(3) - flux(6))

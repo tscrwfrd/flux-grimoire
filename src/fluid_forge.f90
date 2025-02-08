@@ -1,5 +1,5 @@
 module fluid_forge
-  !! A supply of basic fluid sovers.
+  !> A supply of fluid sovers.
   use iso_fortran_env, only: real64, int32
   implicit none
   private
@@ -140,5 +140,80 @@ contains
     rho_adv(length) = rho_adv(length - 2);
         
   end subroutine fct
+
+
+  subroutine lax_wendroff(rho, vel, eng, nx, dt, dx)
+    integer, intent(in) :: nx
+    real(real64), intent(in) :: dt, dx
+    real(real64), intent(in) :: rho(nx), vel(nx), eng(nx)
+    real(real64), parameter :: gamma = 1.4
+    real(real64) :: r(nx), E(nx), prs(nx), flux(9), U(nx), W(nx), V(nx), E(nx),
+      uph(3), umh(3)
+    
+    ! conserved quantities
+    W(:, 1) = rho
+    W(:, 2) = rho*vel
+    W(:, 3) = rho*eng
+
+    do i = 3, nx - 2
+      prs = (gamma - 1.0)*rho(i-1)*(eng(i-1) - 0.5*vel(i-1)**2)
+      flux(1) = rho(i-1)
+      flux(2) = rho(i-1)*vel(i-1)**2
+      flux(3) = vel(i-1)*(rho(i-1)*eng(i-1) + prs)
+
+      prs = (gamma - 1.0)*rho(i)*(eng(i) - 0.5*vel(i)**2)
+      flux(4) = rho(i)
+      flux(5) = rho(i)*vel(i)**2
+      flux(6) = vel(i)*(rho(i)*eng(i) + prs)
+      
+      prs = (gamma - 1.0)*rho(i+1)*(eng(i+1) - 0.5*vel(i+1)**2)
+      flux(7) = rho(i+1)
+      flux(8) = rho(i+1)*vel(i+1)**2
+      flux(9) = vel(i+1)*(rho(i+1)*eng(i+1) + prs)
+      
+      uph = 0.5*(W(i, :) + W(i+1, :)) -   &
+            dt/(2.0*dx)*(flux(7:9) - flux(4:6))
+      umh = 0.5*(W(i, :) + W(i+1, :)) -   &
+            dt/(2.0*dx)*(flux(4:6) - flux(1:3))
+
+      ! flux j + 1/2
+      uph(2) = uph(2)/uph(1)
+      uph(3) = uph(3)/uph(1)
+      prs = (gamma - 1.0)*uph(1)*(uph(3) - 0.5*uph(2)**2)
+      flux(1) = uph(0)*uph(1)
+      flux(2) = uph(0)*uph(1)**2 + prs
+      flux(3) = uph(2)*(uph(1)*uph(3) + prs)
+      
+      ! flux j - 1/2
+      umh(2) = umh(2)/umh(1)
+      umh(3) = umh(3)/umh(1)
+      prs = (gamma - 1.0)*umh(1)*(umh(3) - 0.5*umh(2)**2)
+      flux(4) = umh(0)*umh(1)
+      flux(5) = umh(0)*umh(1)**2 + prs
+      flux(6) = umh(2)*(umh(1)*umh(3) + prs)
+
+      ! corrector
+      U(i) = rho(i) - dt/dx*(flux(1) - flux(4))
+      V(i) = vel(i) - dt/dx*(flux(2) - flux(5))
+      E(i) = eng(i) - dt/dx*(flux(3) - flux(6))
+      
+
+    end do    
+
+    ! boundary cells
+    rho(1) = U(3)
+    rho(2) = U(3)
+    vel(1) = V(3)
+    vel(2) = V(3)
+    eng(1) = E(3)
+    eng(2) = E(3)
+    rho(nx) = U(nx-2)
+    rho(nx-1) = U(nx-2)
+    vel(nx) = V(nx-2)
+    vel(nx-1) = V(nx-2)
+    eng(nx) = E(nx-2)
+    eng(nx-1) = E(nx-2)
+
+  end subroutine lax_wendroff
 
 end module fluid_forge

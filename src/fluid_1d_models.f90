@@ -96,11 +96,11 @@ contains
       dtdx = dt/dx
       
       ! advect water hgt
-      ! ∂(h)_t + ∂(hu)_x 
+      ! ∂h/∂t + ∂(hu)/∂x
       call fct(hgt, velx, nx, dtdx, temp_hgt)
 
       ! advect  momentum
-      ! ∂(hu)_t + (huu)_x
+      ! ∂(hu)/∂t + ∂(hu²)/∂x
       momx = hgt * velx
       call fct(momx, velx, nx, dtdx, temp_mom)
       hgt = temp_hgt
@@ -111,7 +111,7 @@ contains
         velx = 0.0
         hgt = 0.0
       end where
-      ! leveraging operator splitting ∂(0.5*g*h*h)_x
+      ! leveraging operator splitting ∂(hu)/∂t + ∂(½gh²)/∂x
       ! central difference with updated velocity values from fct   
       ! remember fct has two padded cells on the boundaries
       where (hgt(3:nx-2) > 0.001)

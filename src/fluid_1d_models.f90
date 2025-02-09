@@ -1,10 +1,10 @@
 module fluid_1d_models
   use iso_fortran_env, only: int32, real64, error_unit
-  use fluid_forge
+  use fluid_forge, only: fct, lax_wendroff
   implicit none
 
   private
-  public :: square_wave, dam_break
+  public :: square_wave, dam_break, sod_shock
 
 contains
 
@@ -50,7 +50,7 @@ contains
         qnty = 0.0
       end where
 
-      if (mod(t, 10) == 0) then 
+      if (mod(t, 30) == 0) then 
         write(funit, '(*(g0.6,:,","))') qnty
         write(funit, '(*(g0.6,:,","))') velx
       end if
@@ -96,11 +96,11 @@ contains
       dtdx = dt/dx
       
       ! advect water hgt
-      ! ∂(h)_t + ∂(hu)_x 
+      ! ∂h/∂t + ∂(hu)/∂x
       call fct(hgt, velx, nx, dtdx, temp_hgt)
 
       ! advect  momentum
-      ! ∂(hu)_t + (huu)_x
+      ! ∂(hu)/∂t + ∂(hu²)/∂x
       momx = hgt * velx
       call fct(momx, velx, nx, dtdx, temp_mom)
       hgt = temp_hgt
@@ -111,7 +111,7 @@ contains
         velx = 0.0
         hgt = 0.0
       end where
-      ! leveraging operator splitting ∂(0.5*g*h*h)_x
+      ! leveraging operator splitting ∂(hu)/∂t + ∂(½gh²)/∂x
       ! central difference with updated velocity values from fct   
       ! remember fct has two padded cells on the boundaries
       where (hgt(3:nx-2) > 0.001)
@@ -124,7 +124,7 @@ contains
       velx(2) = velx(3)
 
       
-      if (mod(t, 10) == 0) then 
+      if (mod(t, 30) == 0) then 
         write(funit, '(*(g0.6,:,","))') hgt
         write(funit, '(*(g0.6,:,","))') velx
       end if
@@ -135,6 +135,58 @@ contains
     rtnvalue = 1  
 
   end function dam_break
+
+  !> The sod shock problem uses the lax-wendroff(LW) method. Although LW is 
+  !> good for smooth wave flows, it falls a little short for shock wave type 
+  !> scenarios.   
+  function sod_shock() result(rtnvalue)
+    integer(int32) :: rtnvalue, t, i, funit, rc
+    integer(int32), parameter :: nx = 504
+    real(real64), parameter :: gamma = 1.4
+    real(real64):: dt, dx, dtdx, cfl, max_wave_spd
+    real(real64), dimension(nx) :: rho, vel, eng, prs, cs
+
+    rho(1:252) = 1.0
+    rho(253:) = 0.125
+    prs(1:252) = 1.0
+    prs(253:) = 0.1
+    vel = 0.0
+    eng = prs/((gamma - 1.0)*rho) + 0.5*vel**2
+  
+    dx = 0.5 
+    cfl = 0.45
+
+    open(action="write", file="./data/sod_shock.csv", iostat=rc, newunit=funit, &
+      status="replace")
+
+    if (rc /= 0) then
+      write(error_unit, *) "Error opening a new file"
+      rtnvalue = 0
+      return
+    end if
+
+
+    do t = 1, 1000
+      
+      ! prs = (gamma - 1.0)*rho(i)*(eng(i) - 0.5*vel(i)**2)
+      cs = sqrt(gamma*prs/rho)
+
+      dt = cfl*dx/maxval(abs(vel) + cs)
+      call lax_wendroff(rho, vel, prs, nx, dt, dx)
+
+
+      if (mod(t, 30) == 0) then 
+        write(funit, '(*(g0.6,:,","))') rho
+        write(funit, '(*(g0.6,:,","))') vel
+        write(funit, '(*(g0.6,:,","))') prs
+      end if
+
+    end do
+
+    rtnvalue = 1
+
+  end function sod_shock
+
 
 end module fluid_1d_models
 

@@ -24,6 +24,16 @@ The [Lax-Wendroff](https://en.wikipedia.org/wiki/Lax%E2%80%93Wendroff_method) Th
 #### Lax–Friedrichs
 (TBA)
 
+#### Roe & Godunov schemes
+(TBA)
+
+#### MUSCL
+(TBA)
+
+#### WENO
+(TBA)
+
+
 ### Running the code
 
 Numerical methods are written in Fortran and plotting routines are implemented in Python's Matplotlib library.  Running the fortran is easiest by using [fpm](https://fpm.fortran-lang.org/) and running:
@@ -33,8 +43,9 @@ fpm run
 Currently a sucessful run will produce csv file outputs from 1D models in the `data` directory:
 - `square_wave.csv` show a square wave being transported with fct
 - `dam_break.csv` shows an imaginary dam break using operator splitting
+- `sod_shock.csv` shows sod shock problem
 
-Gif animations of model outputs can be produced by running the python plotting script. 
+Gif animations of model outputs are produced by running the python plotting script. 
 Get a virtual environment set-up with [uv](https://docs.astral.sh/uv/) and run:
 
 ```bash

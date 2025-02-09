@@ -165,112 +165,41 @@ contains
   !>   Toro, E. F. (2013). Riemann solvers and numerical methods for fluid 
   !>   dynamics: a practical introduction. Springer Science & Business Media.
   ! !>   
-  ! subroutine lax_wendroff(rho, vel, eng, nx, dt, dx)
-  !   integer, intent(in) :: nx
-  !   real(real64), intent(in) :: dt, dx
-  !   real(real64), intent(inout) :: rho(nx), vel(nx), eng(nx)
-  !   real(real64), parameter :: gamma = 1.4
-  !   integer(int32) :: i
-  !   real(real64) :: prs, flux(9), U(nx), W(nx, 3), V(nx), E(nx), &
-  !     uph(3), umh(3)
-    
-  !   ! conserved quantities
-  !   W(:, 1) = rho
-  !   W(:, 2) = rho*vel
-  !   W(:, 3) = rho*eng
-
-  !   do i = 3, nx - 2
-  !     ! Fluxes 
-  !     ! j-1
-  !     prs = (gamma - 1.0)*rho(i-1)*(eng(i-1) - 0.5*vel(i-1)**2)
-  !     flux(1) = rho(i-1)*vel(i-1)
-  !     flux(2) = rho(i-1)*vel(i-1)**2 + prs
-  !     flux(3) = vel(i-1)*(rho(i-1)*eng(i-1) + prs)
-
-  !     ! j
-  !     prs = (gamma - 1.0)*rho(i)*(eng(i) - 0.5*vel(i)**2)
-  !     flux(4) = rho(i)*vel(i)
-  !     flux(5) = rho(i)*vel(i)**2 + prs
-  !     flux(6) = vel(i)*(rho(i)*eng(i) + prs)
-
-  !     !j+1
-  !     prs = (gamma - 1.0)*rho(i+1)*(eng(i+1) - 0.5*vel(i+1)**2)
-  !     flux(7) = rho(i+1)*vel(i+1)
-  !     flux(8) = rho(i+1)*vel(i+1)**2 + prs
-  !     flux(9) = vel(i+1)*(rho(i+1)*eng(i+1) + prs)
-
-  !     ! half time step
-  !     uph = 0.5*(W(i, :) + W(i+1, :)) -   &
-  !           dt/(2.0*dx)*(flux(7:9) - flux(4:6))
-  !     umh = 0.5*(W(i, :) + W(i-1, :)) -   &
-  !           dt/(2.0*dx)*(flux(4:6) - flux(1:3))
-
-  !     ! flux j + 1/2
-  !     uph(2) = uph(2)/uph(1)
-  !     uph(3) = uph(3)/uph(1)
-  !     prs = (gamma - 1.0)*uph(1)*(uph(3) - 0.5*uph(2)**2)
-  !     flux(1) = uph(1)*uph(2)
-  !     flux(2) = uph(1)*uph(2)**2 + prs
-  !     flux(3) = uph(2)*(uph(1)*uph(3) + prs)
-      
-  !     ! flux j - 1/2
-  !     umh(2) = umh(2)/umh(1)
-  !     umh(3) = umh(3)/umh(1)
-  !     prs = (gamma - 1.0)*umh(1)*(umh(3) - 0.5*umh(2)**2)
-  !     flux(4) = umh(1)*umh(2)
-  !     flux(5) = umh(1)*umh(2)**2 + prs
-  !     flux(6) = umh(2)*(umh(1)*umh(3) + prs)
-
-  !     ! Full time step
-  !     U(i) = W(i, 1) - dt/dx*(flux(1) - flux(4))
-  !     V(i) = W(i, 2) - dt/dx*(flux(2) - flux(5))
-  !     E(i) = W(i, 3) - dt/dx*(flux(3) - flux(6))
-
-  !   end do    
-
-  !   where(U > 0.0)
-  !     rho = U
-  !     vel = V/U
-  !     eng = E/U
-  !   end where
-    
-  !   ! boundary cells
-  !   rho(1) = U(3)
-  !   rho(2) = U(3)
-  !   vel(1) = V(3)/U(3)
-  !   vel(2) = V(3)/U(3)
-  !   eng(1) = E(3)/U(3)
-  !   eng(2) = E(3)/U(3)
-  !   rho(nx) = U(nx-2)
-  !   rho(nx-1) = U(nx-2)
-  !   vel(nx) = V(nx-2)/U(nx-2)
-  !   vel(nx-1) = V(nx-2)/U(nx-2)
-  !   eng(nx) = E(nx-2)/U(nx-2)
-  !   eng(nx-1) = E(nx-2)/U(nx-2)
-
-  ! end subroutine lax_wendroff
-
   subroutine lax_wendroff(rho, vel, prs, nx, dt, dx)
     integer, intent(in) :: nx
     real(real64), intent(in) :: dt, dx
     real(real64), intent(inout) :: rho(nx), vel(nx), prs(nx)
     real(real64), parameter :: gamma = 1.4
     integer(int32) :: i
-    real(real64) :: eng, prsh, flux(9), U(nx), W(nx, 3), V(nx), E(nx), &
-      uph(3), umh(3), Q(3)
+    real(real64) :: eng, prsh, flux(9), W(9), U(nx), V(nx), E(nx), &
+      uph(3), umh(3), uve(3)
     
-    ! conserved quantities
-    W(:, 1) = rho
-    W(:, 2) = rho*vel
-    W(:, 3) = rho*((prs/((gamma - 1.0)*rho)) + 0.5*vel**2)
-
     do i = 3, nx - 2
+      ! conserved quantities
+      W(1) = rho(i-1)
+      W(2) = rho(i-1)*vel(i-1)
+      W(3) = rho(i-1)*((prs(i-1)/((gamma - 1.0)*rho(i-1))) + 0.5*vel(i-1)**2)
+      W(4) = rho(i)
+      W(5) = rho(i)*vel(i)
+      W(6) = rho(i)*((prs(i)/((gamma - 1.0)*rho(i))) + 0.5*vel(i)**2)
+      W(7) = rho(i+1)
+      W(8) = rho(i+1)*vel(i+1)
+      W(9) = rho(i+1)*((prs(i+1)/((gamma - 1.0)*rho(i+1))) + 0.5*vel(i+1)**2)
+
+
       ! Fluxes 
       ! j-1
       eng = prs(i-1)/((gamma-1.0)*rho(i-1)) + 0.5*vel(i-1)**2
       flux(1) = rho(i-1)*vel(i-1)
       flux(2) = rho(i-1)*vel(i-1)**2 + prs(i-1)
       flux(3) = vel(i-1)*(rho(i-1)*eng + prs(i-1))
+
+      ! now update the solution for location i-1
+      if (i > 3) then
+        rho(i-1) = uve(1)
+        vel(i-1) = uve(2)/uve(1)
+        prs(i-1) = (gamma - 1.0)*uve(1)*((uve(3)/uve(1)) - 0.5*vel(i-1)**2)
+      end if 
 
       ! j
       eng = prs(i)/((gamma-1.0)*rho(i)) + 0.5*vel(i)**2
@@ -285,9 +214,9 @@ contains
       flux(9) = vel(i+1)*(rho(i+1)*eng + prs(i+1))
 
       ! half time step
-      uph = 0.5*(W(i, :) + W(i+1, :)) -   &
+      uph = 0.5*(W(4:6) + W(7:9)) -   &
             dt/(2.0*dx)*(flux(7:9) - flux(4:6))
-      umh = 0.5*(W(i, :) + W(i-1, :)) -   &
+      umh = 0.5*(W(4:6) + W(1:3)) -   &
             dt/(2.0*dx)*(flux(4:6) - flux(1:3))
 
       ! flux j + 1/2
@@ -307,31 +236,30 @@ contains
       flux(6) = umh(2)*(umh(1)*umh(3) + prsh)
 
       ! Full time step
-      U(i) = W(i, 1) - dt/dx*(flux(1) - flux(4))
-      V(i) = W(i, 2) - dt/dx*(flux(2) - flux(5))
-      E(i) = W(i, 3) - dt/dx*(flux(3) - flux(6))
+      uve = W(4:6) - dt/dx*(flux(1:3) - flux(4:6))
+
+      ! update since this is last location to compute
+      if (i==nx-2) then
+        rho(i) = uve(1)
+        vel(i) = uve(2)/uve(1)
+        prs(i) = (gamma - 1.0) * uve(1) * ((uve(3)/uve(1)) - 0.5*vel(i)**2)
+      end if
 
     end do    
-
-    where(U > 0.0)
-      rho = U
-      vel = V/U
-      prs = (gamma - 1.0)*rho*((E/U) - 0.5*vel**2)
-    end where
     
     ! boundary cells
     rho(1) = rho(3)
     rho(2) = rho(3)
     vel(1) = vel(3)
     vel(2) = vel(3)
-    prs(1) = (gamma - 1.0)*rho(3)*((E(3)/U(3)) - 0.5*vel(3)**2)
-    prs(2) = prs(1)
+    prs(1) = prs(3)
+    prs(2) = prs(3)
 
     rho(nx) = rho(nx-2)
-    rho(nx-1) = rho(nx-2)
+    rho(nx-1) = rho(nx)
     vel(nx) = vel(nx-2)
     vel(nx-1) = vel(nx)
-    prs(nx) = (gamma - 1.0)*rho(nx-2)*((E(nx-2)/U(nx-2)) - 0.5*(V(nx-2)/U(nx-2))**2)
+    prs(nx) = prs(nx-2)
     prs(nx-1) = prs(nx)
 
   end subroutine lax_wendroff

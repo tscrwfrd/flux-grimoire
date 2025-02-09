@@ -19,12 +19,12 @@ def plot_sod_shock_1d():
     (line3,) = ax3.plot([], [], "g-", linewidth=3)
 
     ax1.set_xlim(0, ncols)
-    ax1.set_ylim(0, 2)
+    ax1.set_ylim(0, 1.2)
 
     ax2.set_ylim(np.min(data[1::2]), np.max(data[1::2]))
-    ax2.set_ylim(0, 5)
+    ax2.set_ylim(0, 2)
 
-    ax3.set_ylim(0, 3)
+    ax3.set_ylim(0, 1.5)
 
     ax1.set_ylabel("rho")
     ax2.set_ylabel("velocity")
@@ -105,6 +105,6 @@ def plot_square_wave():
     plt.close()
 
 if __name__ == "__main__":
-    # plot_square_wave()
-    # plot_fct_dam_1d()
+    plot_square_wave()
+    plot_fct_dam_1d()
     plot_sod_shock_1d()

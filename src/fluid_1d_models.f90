@@ -50,7 +50,7 @@ contains
         qnty = 0.0
       end where
 
-      if (mod(t, 10) == 0) then 
+      if (mod(t, 30) == 0) then 
         write(funit, '(*(g0.6,:,","))') qnty
         write(funit, '(*(g0.6,:,","))') velx
       end if
@@ -124,7 +124,7 @@ contains
       velx(2) = velx(3)
 
       
-      if (mod(t, 10) == 0) then 
+      if (mod(t, 30) == 0) then 
         write(funit, '(*(g0.6,:,","))') hgt
         write(funit, '(*(g0.6,:,","))') velx
       end if
@@ -175,7 +175,7 @@ contains
       call lax_wendroff(rho, vel, prs, nx, dt, dx)
 
 
-      if (mod(t, 10) == 0) then 
+      if (mod(t, 30) == 0) then 
         write(funit, '(*(g0.6,:,","))') rho
         write(funit, '(*(g0.6,:,","))') vel
         write(funit, '(*(g0.6,:,","))') prs

@@ -11,14 +11,18 @@ contains
     print *, "Hello, fluid-forge!"
   end subroutine say_hello
 
+  !> @brief Flux Corrected Transport (FCT) algorithm for solving hyperbolic
+  !> conservation laws
+  !>
+  !>
   !> Flux Corrected Transport (FCT) is a numerical method for solving 
   !> hyperbolic partial differential equations that conservatively advects 
   !> quantities across a structured grid while maintaining positivity and 
   !> minimizing numerical diffusion.  This is an explicit implementation 
   !> using the boris and book method.
   !>
-  !> **NOTE**: This implementation assumes arrays are padded with two ghost 
-  !> cells at both ends. 
+  !> @note Requires two ghost cells at each boundary (4 total)
+  !> @note Implements transmissive boundary conditions 
   !>
   !> The algorithm is described across multiple papers:
   !>    Boris, J.P., & Book, D.L. (1973). Flux-corrected transport. I. 
@@ -33,11 +37,11 @@ contains
   !>    Minimal-error FCT algorithms. 
   !>    Journal of Computational Physics, 20(4), 397-431.
   !>
-  !> @param[in] rho - quantity to advect
-  !> @param[in] vel - velocities
-  !> @param[in] length - array length
-  !> @param[in] dtdx - ratio dt/dx
-  !> @param[inout] rho_adv - advected rho quantity
+  !> @param [inout] rho      Density array (length elements)
+  !> @param [in]    vel      Velocity array (length elements)
+  !> @param [in]    length   Array length (including ghost cells)
+  !> @param [in]    dtdx     Time step / grid spacing ratio
+  !> @param [inout] rho_adv  Advected density array (length elements)
   pure subroutine fct(rho, vel, length, dtdx, rho_adv)
     implicit none
     integer, intent(in) :: length
@@ -143,11 +147,14 @@ contains
         
   end subroutine fct
 
+
+  !> @brief Lax-Wendroff scheme for solving hyperbolic conservation laws
+  !>
   !> The Lax-Wendroff method is a second-order accurate scheme that can be used 
   !> to solve lienar advection (hyperbolic ∂u/∂t + a∂u/∂x = 0) equation. This 
   !> method suffers from numerical dispersion when dealing with numerical 
   !> discontinuities. The method is captured through two steps:
-  !> (Richtmyer)
+  !> (Richtmyer variant)
   !> (1) Half steps 
   !>         Uh_(i+1/2) = 0.5*(U_i+1 + U_i) - 
   !>                             0.5*Δt/Δx(f(U_i+1) - f(U_i))
@@ -156,8 +163,10 @@ contains
   !> (2) Full step
   !>         U^t+1 = U^t - Δt/Δx(f(Uh_i+1/2) - f(Uh_i-1/2))
   !> 
-  !> **NOTE** Two padded cells for the boundaries.
-  !> 
+  !> @note Requires two ghost cells at each boundary (4 total)
+  !> @note Implements transmissive boundary conditions
+  !> @note Checks for and warns about negative pressures
+  !> @note Method exhibits numerical dispersion near discontinuities
   !> 
   !> A great desciption of the method can be found on wikipedia:
   !> https://en.wikipedia.org/wiki/Lax%E2%80%93Wendroff_method
@@ -165,7 +174,13 @@ contains
   !> and here:
   !>   Toro, E. F. (2013). Riemann solvers and numerical methods for fluid 
   !>   dynamics: a practical introduction. Springer Science & Business Media.
-  ! !>   
+  !>
+  !> @param [inout] rho    Density array (nx elements)
+  !> @param [inout] vel    Velocity array (nx elements)
+  !> @param [inout] prs    Pressure array (nx elements)
+  !> @param [in]    nx     Number of grid points
+  !> @param [in]    dt     Time step size
+  !> @param [in]    dx     Grid spacing
   subroutine lax_wendroff(rho, vel, prs, nx, dt, dx)
     integer, intent(in) :: nx
     real(real64), intent(in) :: dt, dx
@@ -200,6 +215,9 @@ contains
         rho(i-1) = uve(1)
         vel(i-1) = uve(2)/uve(1)
         prs(i-1) = (gamma - 1.0)*uve(1)*((uve(3)/uve(1)) - 0.5*vel(i-1)**2)
+        if(prs(i-1) < 0.0) then
+          print*, "Ew...negative pressures being calculated."
+        end if
       end if 
 
       ! j
@@ -244,6 +262,9 @@ contains
         rho(i) = uve(1)
         vel(i) = uve(2)/uve(1)
         prs(i) = (gamma - 1.0) * uve(1) * ((uve(3)/uve(1)) - 0.5*vel(i)**2)
+        if(prs(i) < 0.0) then
+          print*, "Ew...negative pressures being calculated."
+        end if
       end if
 
     end do    
@@ -265,6 +286,25 @@ contains
 
   end subroutine lax_wendroff
 
+  
+  !> @brief Lax-Friedrichs numerical scheme for solving hyperbolic conservation laws
+  !>
+  !> This Lax-Friedrichs method is first order accurate and has numerical
+  !> dissipative and dispersion properties. The method uses a central difference
+  !> scheme with averaging of neighboring points:
+  !>
+  !> U^t+1 = 1/2[ ( U_i+1 +U_i-1) - Δt/Δx(f(U_i+1) - f(U_i-1))  ]
+  !>
+  !> @note Negative pressures will trigger a warning message
+  !> @note Implements transmissive boundary conditions
+  !> @note Requires two ghost cells at each boundary (4 total)
+  !>
+  !> @param [inout] rho    Density array (nx elements)
+  !> @param [inout] vel    Velocity array (nx elements) 
+  !> @param [inout] prs    Pressure array (nx elements)
+  !> @param [in]    nx     Number of grid points
+  !> @param [in]    dt     Time step size
+  !> @param [in]    dx     Grid spacing
   subroutine lax_friedrichs(rho, vel, prs, nx, dt, dx)
     integer, intent(in) :: nx
     real(real64), intent(in) :: dt, dx
@@ -298,6 +338,9 @@ contains
         rho(i-1) = cv(1)
         vel(i-1) = cv(2)/cv(1)
         prs(i-1) = (gamma - 1.0) * cv(1) * ((cv(3)/cv(1)) - 0.5*vel(i-1)**2)
+        if(prs(i-1) < 0.0) then
+          print*, "Ew...negative pressures being calculated."
+        end if
       end if
 
       cv(1) = 0.5*(w(1)+w(4) - dtdx*(flux(4)-flux(1)))
@@ -308,9 +351,11 @@ contains
         rho(i) = cv(1)
         vel(i) = cv(2)/cv(1)
         prs(i) = (gamma - 1.0) * cv(1) * ((cv(3)/cv(1)) - 0.5*vel(i-1)**2)
-      end
-      
-      
+        if(prs(i) < 0.0) then
+          print*, "Ew...negative pressures being calculated."
+        end if
+      end if
+            
     end do
     
     ! boundary cells
@@ -327,8 +372,6 @@ contains
     vel(nx-1) = vel(nx)
     prs(nx) = prs(nx-2)
     prs(nx-1) = prs(nx)
-
-        
 
   end subroutine lax_friedrichs
 

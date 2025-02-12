@@ -4,7 +4,7 @@ module fluid_forge
   implicit none
   private
 
-  public :: say_hello, fct, lax_wendroff
+  public :: say_hello, fct, lax_wendroff, lax_friedrichs
 contains
 
   subroutine say_hello
@@ -38,10 +38,11 @@ contains
   !> @param[in] length - array length
   !> @param[in] dtdx - ratio dt/dx
   !> @param[inout] rho_adv - advected rho quantity
-  subroutine fct(rho, vel, length, dtdx, rho_adv)
+  pure subroutine fct(rho, vel, length, dtdx, rho_adv)
     implicit none
     integer, intent(in) :: length
-    real(real64), intent(inout) :: rho(length), vel(length), rho_adv(length)
+    real(real64), intent(in) :: rho(length), vel(length)
+    real(real64), intent(inout) :: rho_adv(length)
     real(real64), intent(in) ::  dtdx
 
     integer(int32) :: j, lidx, ridx
@@ -122,13 +123,13 @@ contains
       flux(2) = mu(2) * (rho_diffused(4) - rho_diffused(3))
 
       ! anti-diffusive corrections/quantities
-      sgn = sign(1.0D0, rho_delta(2))
+      sgn = sign(1.0_real64, rho_delta(2))
       flux(1) = min(abs(flux(1)), sgn*rho_delta(3), sgn*rho_delta(1))       
-      flux(1) = sgn*max(0.0,  flux(1))
+      flux(1) = sgn*max(0.0_real64,  flux(1))
       
-      sgn = sign(1.0D0, rho_delta(3))
+      sgn = sign(1.0_real64, rho_delta(3))
       flux(2) = min(abs(flux(2)), sgn*rho_delta(2), sgn*rho_delta(4))       
-      flux(2) = sgn*max(0.0,  flux(2))
+      flux(2) = sgn*max(0.0_real64,  flux(2))
 
       rho_adv(j) = rho_diffused(3) - flux(2) + flux(1)
       
@@ -263,5 +264,72 @@ contains
     prs(nx-1) = prs(nx)
 
   end subroutine lax_wendroff
+
+  subroutine lax_friedrichs(rho, vel, prs, nx, dt, dx)
+    integer, intent(in) :: nx
+    real(real64), intent(in) :: dt, dx
+    real(real64), intent(inout) :: rho(nx), vel(nx), prs(nx)
+    real(real64), parameter :: gamma = 1.4
+    integer(int32) :: i
+
+    real(real64) :: flux(6), w(6), cv(3), dtdx
+
+    dtdx = dt/dx
+    
+    do i = 3, nx-2
+      ! conserved variables rho, momemtum, energy
+      w(1) = rho(i-1)
+      w(2) = rho(i-1)*vel(i-1)
+      w(3) = rho(i-1)*((prs(i-1)/((gamma - 1.0)*rho(i-1))) + 0.5*vel(i-1)**2)
+      w(4) = rho(i+1)
+      w(5) = rho(i+1)*vel(i+1)
+      w(6) = rho(i+1)*((prs(i+1)/((gamma - 1.0)*rho(i+1))) + 0.5*vel(i+1)**2)
+
+      ! j-1
+      flux(1) = vel(i-1)*w(1)
+      flux(2) = vel(i-1)*w(2) + prs(i-1)
+      flux(3) = vel(i-1)*(w(1)*w(3)+prs(i-1))
+      ! j+1
+      flux(4) = vel(i+1)*w(4)
+      flux(5) = vel(i+1)*w(5) + prs(i+1)
+      flux(6) = vel(i+1)*(w(4)*w(6)+prs(i+1))
+
+      if(i > 3) then
+        rho(i-1) = cv(1)
+        vel(i-1) = cv(2)/cv(1)
+        prs(i-1) = (gamma - 1.0) * cv(1) * ((cv(3)/cv(1)) - 0.5*vel(i-1)**2)
+      end if
+
+      cv(1) = 0.5*(w(1)+w(4) - dtdx*(flux(4)-flux(1)))
+      cv(2) = 0.5*(w(2)+w(5) - dtdx*(flux(5)-flux(2)))
+      cv(3) = 0.5*(w(3)+w(6) - dtdx*(flux(6)-flux(3)))
+
+      if (i == nx-2) then
+        rho(i) = cv(1)
+        vel(i) = cv(2)/cv(1)
+        prs(i) = (gamma - 1.0) * cv(1) * ((cv(3)/cv(1)) - 0.5*vel(i-1)**2)
+      end
+      
+      
+    end do
+    
+    ! boundary cells
+    rho(1) = rho(3)
+    rho(2) = rho(3)
+    vel(1) = vel(3)
+    vel(2) = vel(3)
+    prs(1) = prs(3)
+    prs(2) = prs(3)
+
+    rho(nx) = rho(nx-2)
+    rho(nx-1) = rho(nx)
+    vel(nx) = vel(nx-2)
+    vel(nx-1) = vel(nx)
+    prs(nx) = prs(nx-2)
+    prs(nx-1) = prs(nx)
+
+        
+
+  end subroutine lax_friedrichs
 
 end module fluid_forge

@@ -1,6 +1,6 @@
 module fluid_1d_models
   use iso_fortran_env, only: int32, real64, error_unit
-  use fluid_forge, only: fct, lax_wendroff
+  use fluid_forge, only: fct, lax_wendroff, lax_friedrichs
   implicit none
 
   private
@@ -18,7 +18,7 @@ contains
     real(real64), parameter :: dtdx = dt / dx
     integer(int32), parameter :: grid_size = 500
     real(real64), dimension(grid_size) :: qnty, velx, momx, temp_qnty, temp_momx
-    integer(int32) :: rtnvalue, rc, funit, i, t
+    integer(int32) :: rtnvalue, rc, funit, t
 
     open(action="write", file="./data/square_wave.csv", iostat=rc, newunit=funit,      &
       status="replace")
@@ -64,7 +64,7 @@ contains
   !> in fct where the CFL condition must be set low to get good solutions. 
   !> Try setting it to different values...but beware of instabilities.
   function dam_break() result(rtnvalue)
-    integer(int32) :: rtnvalue, t, i, funit, rc
+    integer(int32) :: rtnvalue, t, funit, rc
     integer(int32), parameter :: nx = 504
     real(real64), parameter :: g = 9.8
     real(real64):: dt, dx, dtdx, cfl, max_wave_spd
@@ -140,10 +140,10 @@ contains
   !> good for smooth wave flows, it falls a little short for shock wave type 
   !> scenarios.   
   function sod_shock() result(rtnvalue)
-    integer(int32) :: rtnvalue, t, i, funit, rc
+    integer(int32) :: rtnvalue, t, funit, rc
     integer(int32), parameter :: nx = 504
     real(real64), parameter :: gamma = 1.4
-    real(real64):: dt, dx, dtdx, cfl, max_wave_spd
+    real(real64):: dt, dx, cfl
     real(real64), dimension(nx) :: rho, vel, eng, prs, cs
 
     rho(1:252) = 1.0
@@ -154,7 +154,7 @@ contains
     eng = prs/((gamma - 1.0)*rho) + 0.5*vel**2
   
     dx = 0.5 
-    cfl = 0.45
+    cfl = 0.11
 
     open(action="write", file="./data/sod_shock.csv", iostat=rc, newunit=funit, &
       status="replace")
@@ -166,14 +166,12 @@ contains
     end if
 
 
-    do t = 1, 1000
+    do t = 1, 2000
       
-      ! prs = (gamma - 1.0)*rho(i)*(eng(i) - 0.5*vel(i)**2)
       cs = sqrt(gamma*prs/rho)
-
       dt = cfl*dx/maxval(abs(vel) + cs)
-      call lax_wendroff(rho, vel, prs, nx, dt, dx)
-
+      call lax_friedrichs(rho, vel, prs, nx, dt, dx)
+      ! call lax_wendroff(rho, vel, prs, nx, dt, dx)
 
       if (mod(t, 30) == 0) then 
         write(funit, '(*(g0.6,:,","))') rho

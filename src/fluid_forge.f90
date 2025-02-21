@@ -375,4 +375,38 @@ contains
 
   end subroutine lax_friedrichs
 
+  subroutine roe(rho, vel, prs, nx, dt, dx)
+    integer, intent(in) :: nx
+    real(real64), intent(in) :: dt, dx
+    real(real64), intent(inout) :: rho(nx), vel(nx), prs(nx)
+    real(real64), parameter :: gamma = 1.4
+    integer(int32) :: i
+
+    real(real64) :: flux(6), w(6), cv(3)
+    real(real64) :: eigvec(9), alpha(3), eigvecinv(9)
+    real(real64) :: dtdx, rhoavg, velavg, enthalpy_avg, enthalpy(2), cs, denom
+
+    dtdx = dt/dx
+
+    do i=3, nx-2
+      ! Roe averages
+      rhoavg = sqrt(rho(i)*rho(i+1))
+      denom = sqrt(vel(i)) + sqrt(vel(i+1))
+      velavg = sqrt(rho(i))*vel(i) + sqrt(rho(i+1))
+      velavg= velavg / denom
+      enthalpy(1) = gamma/(gamma-1.0)*prs(i)+0.5*vel(i)**2
+      enthalpy(2) = gamma/(gamma-1.0)*prs(i+1)+0.5*vel(i+1)**2
+      enthalpy_avg = sqrt(rho(i))*enthalpy(1) + sqrt(rho(i+11))*enthalpy(2)
+      enthalpy_avg = enthalpy_avg/denom
+
+            
+       
+    
+    end do
+
+    
+
+
+  end subroutine
+
 end module fluid_forge

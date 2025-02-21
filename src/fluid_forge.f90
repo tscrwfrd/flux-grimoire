@@ -383,7 +383,7 @@ contains
     integer(int32) :: i
 
     real(real64) :: flux(6), w(6), cv(3)
-    real(real64) :: eigvec(9), alpha(3), eigvecinv(9)
+    real(real64) :: eigvec(3, 3), alpha, eigvecinv(3, 3)
     real(real64) :: dtdx, rhoavg, velavg, enthalpy_avg, enthalpy(2), cs, denom
 
     dtdx = dt/dx
@@ -399,8 +399,30 @@ contains
       enthalpy_avg = sqrt(rho(i))*enthalpy(1) + sqrt(rho(i+11))*enthalpy(2)
       enthalpy_avg = enthalpy_avg/denom
 
-            
-       
+      cs = sqrt((gamma-1.0)*(enthalpy_avg - 0.5*velavg**2))
+
+      ! right eigenvectors of jacobian
+      eigvec(1,1) = 1.0
+      eigvec(2,1) = velavg - cs
+      eigvec(3,1) = enthalpy_avg - velavg*cs
+      eigvec(1,2) = 1.0
+      eigvec(2,2) = velavg
+      eigvec(3,2) = 0.5*velavg*velavg
+      eigvec(1,3) = 1.0
+      eigvec(2,3) = velavg + cs
+      eigvec(3,3) = enthalpy_avg + velavg*cs
+
+      !inverse right eigenvector of jacobian
+      alpha = (gamma - 1.0)/(2.0*cs)
+      eigvecinv(1,1) = 0.5*velavg**2 + (velavg*cs)/(gamma-1.0)             
+      eigvecinv(2,1) = (2.0*cs**2)/(gamma - 1.0) - velavg**2
+      eigvecinv(3,1) = 0.5*velavg**2 - (velavg*cs)/(gamma-1.0)            
+      eigvecinv(1,2) = -velavg - cs/(gamma - 1.0)            
+      eigvecinv(2,2) = 2.0*velavg            
+      eigvecinv(3,2) = cs/(gamma-1.0) - velavg            
+      eigvecinv(1,3) = 1.0            
+      eigvecinv(2,3) = -2.0            
+      eigvecinv(3,3) = 1.0            
     
     end do
 

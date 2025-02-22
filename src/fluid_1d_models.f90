@@ -74,8 +74,8 @@ contains
     momx(:) = 0.0
     velx(:) = 0.0
     ! initialize water levels
-    hgt(1:250) = 20.0
-    hgt(251:) = 0.5
+    hgt(1:250) = 3.0
+    hgt(251:) = 1.0
 
     dx = 0.1 
     cfl = 0.15

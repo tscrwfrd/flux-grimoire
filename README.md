@@ -39,11 +39,23 @@ This method serves as a building block for understanding more sophisticated nume
 
 Many good references exist, but these are the references I reviewed for this implementation:
 - [Lax-Friedrichs](https://en.wikipedia.org/wiki/Lax%E2%80%93Friedrichs_method) wikipedia page
-- Toro, E. F. (2013). Riemann solvers and numerical methods for fluid dynamics: a practical introduction. Springer Science & Business Media.
+- Toro, E. F. (2009). Riemann solvers and numerical methods for fluid dynamics: a practical introduction. Springer Science & Business Media.
 
 
-#### Roe & Godunov schemes
-(TBA)
+#### Roe method
+The Roe solver is a sophisticated numerical method for solving the Euler equations in computational fluid dynamics. It uses a linearized approximation of the Riemann problem at cell interfaces, incorporating characteristic decomposition to handle wave propagation accurately.
+
+- Second-order accurate in space and time
+- Uses eigenvalue decomposition for wave-based solution
+- Handles shock waves and contact discontinuities well
+- Requires computation of Roe-averaged states
+- Implements characteristic decomposition through eigenstructure
+
+Many good references exist, but these are the references I reviewed for this implementation:
+
+- Roe, P. L. (1981). Approximate Riemann solvers, parameter vectors, and difference schemes. Journal of computational physics, 43(2), 357-372.
+- Toro, E. F. (2009). Riemann solvers and numerical methods for fluid dynamics: a practical introduction. Springer Science & Business Media.
+
 
 #### MUSCL
 (TBA)

@@ -27,7 +27,7 @@ submodule (fluid_forge) lax_wendroff_impl
     !> https://en.wikipedia.org/wiki/Lax%E2%80%93Wendroff_method
     !> 
     !> and here:
-    !>   Toro, E. F. (2013). Riemann solvers and numerical methods for fluid 
+    !>   Toro, E. F. (2009). Riemann solvers and numerical methods for fluid 
     !>   dynamics: a practical introduction. Springer Science & Business Media.
     !>
     !> @param [inout] rho    Density array (nx elements)
@@ -39,8 +39,7 @@ submodule (fluid_forge) lax_wendroff_impl
     module procedure lax_wendroff
       real(real64), parameter :: gamma = 1.4
       integer(int32) :: i
-      real(real64) :: eng, prsh, flux(9), W(9), U(nx), V(nx), E(nx), &
-        uph(3), umh(3), uve(3)
+      real(real64) :: eng, prsh, flux(9), W(9), uph(3), umh(3), uve(3)
 
       do i = 3, nx - 2
       ! conserved quantities

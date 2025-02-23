@@ -1,10 +1,10 @@
 module fluid_1d_models
   use iso_fortran_env, only: int32, real64, error_unit
-  use fluid_forge, only: fct, lax_wendroff, lax_friedrichs
+  use fluid_forge, only: fct, lax_wendroff, lax_friedrichs, roe
   implicit none
 
   private
-  public :: square_wave, dam_break, sod_shock
+  public :: square_wave, dam_break, sod_shock_lw, sod_shock_roe
 
 contains
 
@@ -50,7 +50,7 @@ contains
         qnty = 0.0
       end where
 
-      if (mod(t, 30) == 0) then 
+      if (mod(t, 30) == 0 .or. t == 1) then 
         write(funit, '(*(g0.6,:,","))') qnty
         write(funit, '(*(g0.6,:,","))') velx
       end if
@@ -74,8 +74,8 @@ contains
     momx(:) = 0.0
     velx(:) = 0.0
     ! initialize water levels
-    hgt(1:250) = 20.0
-    hgt(251:) = 0.5
+    hgt(1:250) = 3.0
+    hgt(251:) = 1.0
 
     dx = 0.1 
     cfl = 0.15
@@ -124,7 +124,7 @@ contains
       velx(2) = velx(3)
 
       
-      if (mod(t, 30) == 0) then 
+      if (mod(t, 30) == 0 .or. t == 1) then 
         write(funit, '(*(g0.6,:,","))') hgt
         write(funit, '(*(g0.6,:,","))') velx
       end if
@@ -139,7 +139,7 @@ contains
   !> The sod shock problem uses the lax-wendroff(LW) method. Although LW is 
   !> good for smooth wave flows, it falls a little short for shock wave type 
   !> scenarios.   
-  function sod_shock() result(rtnvalue)
+  function sod_shock_lw() result(rtnvalue)
     integer(int32) :: rtnvalue, t, funit, rc
     integer(int32), parameter :: nx = 504
     real(real64), parameter :: gamma = 1.4
@@ -156,7 +156,7 @@ contains
     dx = 0.5 
     cfl = 0.11
 
-    open(action="write", file="./data/sod_shock.csv", iostat=rc, newunit=funit, &
+    open(action="write", file="./data/sod_shock_lw.csv", iostat=rc, newunit=funit, &
       status="replace")
 
     if (rc /= 0) then
@@ -170,10 +170,9 @@ contains
       
       cs = sqrt(gamma*prs/rho)
       dt = cfl*dx/maxval(abs(vel) + cs)
-      call lax_friedrichs(rho, vel, prs, nx, dt, dx)
-      ! call lax_wendroff(rho, vel, prs, nx, dt, dx)
+      call lax_wendroff(rho, vel, prs, nx, dt, dx)
 
-      if (mod(t, 30) == 0) then 
+      if (mod(t, 30) == 0 .or. t == 1) then 
         write(funit, '(*(g0.6,:,","))') rho
         write(funit, '(*(g0.6,:,","))') vel
         write(funit, '(*(g0.6,:,","))') prs
@@ -183,7 +182,55 @@ contains
 
     rtnvalue = 1
 
-  end function sod_shock
+  end function sod_shock_lw
+
+  !> The sod shock problem uses Roe's approximate riemann solver method.
+  function sod_shock_roe() result(rtnvalue)
+    integer(int32) :: rtnvalue, t, funit, rc
+    integer(int32), parameter :: nx = 504
+    real(real64), parameter :: gamma = 1.4
+    real(real64):: dt, dx, cfl
+    real(real64), dimension(nx) :: rho, vel, eng, prs, cs
+
+    rho(1:252) = 1.0
+    rho(253:) = 0.125
+    prs(1:252) = 1.0
+    prs(253:) = 0.1
+    vel = 0.0
+    eng = prs/((gamma - 1.0)*rho) + 0.5*vel**2
+  
+    dx = 0.5 
+    cfl = 0.11
+
+    open(action="write", file="./data/sod_shock_roe.csv", iostat=rc, newunit=funit, &
+      status="replace")
+
+    if (rc /= 0) then
+      write(error_unit, *) "Error opening a new file"
+      rtnvalue = 0
+      return
+    end if
+
+
+    do t = 1, 2000
+      
+      cs = sqrt(gamma*prs/rho)
+      dt = cfl*dx/maxval(abs(vel) + cs)
+      ! call lax_friedrichs(rho, vel, prs, nx, dt, dx)
+      call roe(rho, vel, prs, nx, dt, dx)
+      ! call lax_wendroff(rho, vel, prs, nx, dt, dx)
+
+      if (mod(t, 30) == 0 .or. t == 1) then 
+        write(funit, '(*(g0.6,:,","))') rho
+        write(funit, '(*(g0.6,:,","))') vel
+        write(funit, '(*(g0.6,:,","))') prs
+      end if
+
+    end do
+
+    rtnvalue = 1
+
+  end function sod_shock_roe
 
 
 end module fluid_1d_models

@@ -45,9 +45,9 @@ submodule (fluid_forge) roe_solver_impl
         call jac_decomp(rho, vel, prs, i-1, eigvec, eigvecinv, diag)
         roe_jac = matmul(eigvec, diag)
         roe_jac = matmul(roe_jac, eigvecinv)
-        diff(1) = w(7) - w(4)
-        diff(2) = w(8) - w(5)
-        diff(3) = w(9) - w(6)
+        diff(1) = w(4) - w(1)
+        diff(2) = w(5) - w(2)
+        diff(3) = w(6) - w(3)
         qnty = matmul(roe_jac, diff)
         ! Flux_{j-1/2}
         roe_flux(:, 1) = 0.5_real64*(flux(1:3) + flux(4:6)) - 0.5_real64*(qnty)
@@ -55,9 +55,10 @@ submodule (fluid_forge) roe_solver_impl
         call jac_decomp(rho, vel, prs, i, eigvec, eigvecinv, diag)
         roe_jac = matmul(eigvec, diag)
         roe_jac = matmul(roe_jac, eigvecinv)
-        diff(1) = w(4) - w(1)
-        diff(2) = w(5) - w(2)
-        diff(3) = w(6) - w(3)
+        diff(1) = w(7) - w(4)
+        diff(2) = w(8) - w(5)
+        diff(3) = w(9) - w(6)
+        
         qnty = matmul(roe_jac, diff)
         ! Flux_{j+1/2}
         roe_flux(:, 2) = 0.5_real64*(flux(4:6) + flux(7:9)) - 0.5_real64*(qnty)
@@ -65,8 +66,8 @@ submodule (fluid_forge) roe_solver_impl
         ! scheme update: U^t+1 = U^t - Δt/Δx(f(U_i+1) - f(U_i-1)
         w(4:6) = w(4:6) - dtdx*(roe_flux(:, 2) - roe_flux(:, 1))
 
-        ! if (i == 5) then
-        !   print *, rho(i), qnty
+        ! if (i == 252) then
+        !   print *, rho(i), w(4:6)
         ! end if
 
         ! update last
@@ -119,18 +120,18 @@ submodule (fluid_forge) roe_solver_impl
       
       ! Roe averages
       rhoavg = sqrt(rho(idx)*rho(idx+1))
-      denom = sqrt(vel(idx)) + sqrt(vel(idx+1))
-      velavg = sqrt(rho(idx))*vel(idx) + sqrt(rho(idx+1))
-      velavg= velavg / denom
-      enthalpy(1) = gamma/(gamma-1.0)*prs(idx)+0.5*vel(idx)**2
-      enthalpy(2) = gamma/(gamma-1.0)*prs(idx+1)+0.5*vel(idx+1)**2
+      denom = sqrt(rho(idx)) + sqrt(rho(idx+1))
+      velavg = sqrt(rho(idx))*vel(idx) + sqrt(rho(idx+1))*vel(idx+1)
+      velavg = velavg / denom
+      enthalpy(1) = gamma/(gamma - 1.0)*prs(idx)/rho(idx) + 0.5*vel(idx)**2
+      enthalpy(2) = gamma/(gamma - 1.0)*prs(idx+1)/rho(idx+1) + 0.5*vel(idx+1)**2
       enthalpy_avg = sqrt(rho(idx))*enthalpy(1) + sqrt(rho(idx+1))*enthalpy(2)
       enthalpy_avg = enthalpy_avg/denom
 
       cs = sqrt((gamma-1.0)*(enthalpy_avg - 0.5*velavg**2))
-      if (idx == 5) then
-        print *, rho(idx)
-      end if
+      ! if (idx == 5) then
+      !   print *, rho(idx), cs, gamma, velavg, denom
+      ! end if
 
       ! right eigenvectors of jacobian
       eigvec(1,1) = 1.0

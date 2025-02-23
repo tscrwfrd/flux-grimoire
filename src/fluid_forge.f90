@@ -4,7 +4,7 @@ module fluid_forge
   implicit none
   private
 
-  public :: say_hello, fct, lax_wendroff, lax_friedrichs
+  public :: say_hello, fct, lax_wendroff, lax_friedrichs, roe
 
   interface
 

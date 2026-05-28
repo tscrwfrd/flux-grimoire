@@ -1,6 +1,7 @@
 program main
   use fluid_forge, only: say_hello
   use fluid_1d_models, only: dam_break, square_wave, sod_shock_lw, sod_shock_roe
+  use fluid_2d_models, only: slotted_cylinder
   implicit none
   integer :: val
 
@@ -24,6 +25,11 @@ program main
   val = sod_shock_roe()
   if (val /= 1) then
     write(*, '(5X,A,/)') "Boo!!! Sod shock Roe 1d unsuccessful..."
+  end if
+
+  val = slotted_cylinder()
+  if (val /= 1) then
+    write(*, '(5X,A,/)') "Boo!!! Slotted cylinder 2d unsuccessful..."
   end if
 
 end program main

@@ -4,7 +4,7 @@ module fluid_forge
   implicit none
   private
 
-  public :: say_hello, fct, lax_wendroff, lax_friedrichs, roe
+  public :: say_hello, fct, fct_2d, lax_wendroff, lax_friedrichs, roe
 
   interface
 
@@ -14,6 +14,13 @@ module fluid_forge
       real(real64), intent(inout) :: rho_adv(length)
       real(real64), intent(in) ::  dtdx
     end subroutine fct
+
+    module subroutine fct_2d(rho, u, v, nx, ny, dtdx, dtdy, rho_adv)
+      integer, intent(in) :: nx, ny
+      real(real64), intent(in) :: rho(nx, ny), u(nx, ny), v(nx, ny)
+      real(real64), intent(inout) :: rho_adv(nx, ny)
+      real(real64), intent(in) :: dtdx, dtdy
+    end subroutine fct_2d
 
     module subroutine lax_wendroff(rho, vel, prs, nx, dt, dx)
       integer, intent(in) :: nx

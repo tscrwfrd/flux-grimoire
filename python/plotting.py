@@ -141,8 +141,46 @@ def plot_square_wave():
     anim.save("./data/square_wave.gif")
     plt.close()
 
+def plot_slotted_cylinder():
+    """Animate Zalesak's 2D slotted-cylinder rotation test.
+
+    CSV layout: ny consecutive rows of nx values per snapshot, square grid
+    so ny is recovered as nx (rows-per-frame).
+    """
+    data = np.genfromtxt(
+        "./data/slotted_cylinder.csv", dtype=np.float64, delimiter=","
+    )
+    total_rows, nx = data.shape
+    ny = nx
+    nframes = total_rows // ny
+    frames = data.reshape(nframes, ny, nx)
+
+    fig, ax = plt.subplots(layout="constrained", dpi=150, figsize=(6, 6))
+    im = ax.imshow(
+        frames[0],
+        origin="lower",
+        cmap="viridis",
+        vmin=0.0,
+        vmax=1.0,
+        interpolation="nearest",
+    )
+    ax.set_xlabel("i")
+    ax.set_ylabel("j")
+    fig.colorbar(im, ax=ax, shrink=0.8, label="rho")
+
+    def update(frame):
+        im.set_data(frames[frame])
+        ax.set_title(f"frame {frame}/{nframes - 1}")
+        return (im,)
+
+    anim = FuncAnimation(fig, update, frames=nframes, interval=120)
+    anim.save("./data/slotted_cylinder.gif")
+    plt.close()
+
+
 if __name__ == "__main__":
     plot_square_wave()
     plot_fct_dam_1d()
     plot_sod_shock_1d_lw()
     plot_sod_shock_1d_roe()
+    plot_slotted_cylinder()

@@ -284,5 +284,59 @@ contains
 
   end function sod_shock_weno3
 
+  !> The sod shock problem uses the fifth-order Jiang-Shu WENO5
+  !> reconstruction with global Lax-Friedrichs flux splitting and
+  !> forward-Euler time integration (1st-order time, 5th-order space).
+  !> The WENO5 5-cell stencil requires THREE ghost cells per side, so
+  !> nx = 506 here keeps 500 interior cells comparable to the other
+  !> Sod scenarios.
+  function sod_shock_weno5() result(rtnvalue)
+    integer(int32) :: rtnvalue, t, funit, rc
+    integer(int32), parameter :: nx = 506
+    real(real64), parameter :: gamma = 1.4
+    real(real64):: dt, dx, cfl
+    real(real64), dimension(nx) :: rho, vel, eng, prs, cs
+
+    ! Initial Sod state. Discontinuity at the centre of the interior
+    ! range [4, nx-3], i.e. between cells 253 and 254.
+    rho(1:253) = 1.0
+    rho(254:) = 0.125
+    prs(1:253) = 1.0
+    prs(254:) = 0.1
+    vel = 0.0
+    eng = prs/((gamma - 1.0)*rho) + 0.5*vel**2
+
+    dx = 0.5
+    cfl = 0.11
+
+    open(action="write", file="./data/sod_shock_weno5.csv", iostat=rc, newunit=funit, &
+      status="replace")
+
+    if (rc /= 0) then
+      write(error_unit, *) "Error opening a new file"
+      rtnvalue = 0
+      return
+    end if
+
+    do t = 1, 2000
+
+      cs = sqrt(gamma*prs/rho)
+      dt = cfl*dx/maxval(abs(vel) + cs)
+      call weno5(rho, vel, prs, nx, dt, dx)
+
+      if (mod(t, 30) == 0 .or. t == 1) then
+        write(funit, '(*(g0.6,:,","))') rho
+        write(funit, '(*(g0.6,:,","))') vel
+        write(funit, '(*(g0.6,:,","))') prs
+      end if
+
+    end do
+
+    close(funit)
+    rtnvalue = 1
+
+  end function sod_shock_weno5
+
+
 end module fluid_1d_models
 

@@ -47,6 +47,12 @@ module fluid_forge
       real(real64), intent(inout) :: rho(nx), vel(nx), prs(nx)
     end subroutine weno3
 
+    module subroutine weno5(rho, vel, prs, nx, dt, dx)
+      integer, intent(in) :: nx
+      real(real64), intent(in) :: dt, dx
+      real(real64), intent(inout) :: rho(nx), vel(nx), prs(nx)
+    end subroutine weno5
+    
   end interface
 
   contains

@@ -32,7 +32,12 @@ program main
   if (val /= 1) then
     write(*, '(5X,A,/)') "Boo!!! Sod shock WENO3 1d unsuccessful..."
   end if
-  
+
+  val = sod_shock_weno5()
+  if (val /= 1) then
+    write(*, '(5X,A,/)') "Boo!!! Sod shock WENO5 1d unsuccessful..."
+  end if
+
   val = slotted_cylinder()
   if (val /= 1) then
     write(*, '(5X,A,/)') "Boo!!! Slotted cylinder 2d unsuccessful..."

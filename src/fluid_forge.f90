@@ -4,7 +4,8 @@ module fluid_forge
   implicit none
   private
 
-  public :: say_hello, fct, fct_2d, lax_wendroff, lax_friedrichs, roe
+  public :: say_hello, fct, fct_2d, lax_wendroff, lax_friedrichs, roe, &
+            weno3, weno5
 
   interface
 
@@ -39,7 +40,13 @@ module fluid_forge
       real(real64), intent(in) :: dt, dx
       real(real64), intent(inout) :: rho(nx), vel(nx), prs(nx)
     end subroutine roe
-      
+    
+    module subroutine weno3(rho, vel, prs, nx, dt, dx)
+      integer, intent(in) :: nx
+      real(real64), intent(in) :: dt, dx
+      real(real64), intent(inout) :: rho(nx), vel(nx), prs(nx)
+    end subroutine weno3
+
   end interface
 
   contains

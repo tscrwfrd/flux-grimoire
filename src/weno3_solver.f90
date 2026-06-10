@@ -42,8 +42,7 @@ submodule (fluid_forge) weno3_impl
   !>       preserve the SSP (Strong Stability Preserving) property of
   !>       the WENO reconstruction. Sharp shocks can produce small
   !>       oscillations; if needed, lower the CFL or wrap this with a
-  !>       higher-order RK (the `weno5_rk3_2d` 2D variant uses RK3-SSP
-  !>       for that reason).
+  !>       higher-order RK time scheme.
   !>
   !> Reference for the WENO3 reconstruction (the 3-cell, 2-substencil
   !> classical Jiang-Shu form with optimal weights d_0 = 1/3, d_1 = 2/3

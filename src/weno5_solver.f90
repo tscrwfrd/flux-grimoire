@@ -40,8 +40,7 @@ submodule (fluid_forge) weno5_impl
   !>       nx = 506 for 500 interior cells.
   !> @note Forward Euler with WENO is conditionally stable but does not
   !>       preserve the SSP property; if oscillations appear at strong
-  !>       shocks, wrap the spatial scheme with RK3-SSP (the 2D variant
-  !>       `weno5_rk3_2d` shows the structure).
+  !>       shocks, wrap this with a higher-order RK time scheme..
   !>
   !> References:
   !>   Jiang, G. S., & Shu, C. W. (1996). Efficient implementation of
@@ -83,6 +82,7 @@ submodule (fluid_forge) weno5_impl
       alpha = max(alpha, abs(u_loc) + c_loc)
     end do
 
+    ! Lax-Friedrichs flux splitting
     do i = 1, nx
       do k = 1, 3
         fp(k, i) = 0.5_real64 * (f_phys(k, i) + alpha * u_cons(k, i))

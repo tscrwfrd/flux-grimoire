@@ -79,13 +79,42 @@ Many good references exist, but these are the references I reviewed for this imp
 - Roe, P. L. (1981). Approximate Riemann solvers, parameter vectors, and difference schemes. Journal of computational physics, 43(2), 357-372.
 - Toro, E. F. (2009). Riemann solvers and numerical methods for fluid dynamics: a practical introduction. Springer Science & Business Media.
 
+#### WENO3 (third-order)
+The Weighted Essentially Non-Oscillatory (WENO) method is a high-order accurate scheme that avoids Gibbs phenomena at discontinuities by adaptively weighting several candidate stencils. This 1D implementation uses the classical Jiang-Shu WENO3 reconstruction with global Lax-Friedrichs flux splitting and forward-Euler time integration. The combination is 1st-order in time, formally 3rd-order in space in smooth regions.
+
+Per step:
+1. Convert primitives to conserved variables U = (ρ, ρu, E) and compute the physical flux F(U) at every cell
+2. Global Lax-Friedrichs flux splitting: f⁺ = (F + αU)/2, f⁻ = (F − αU)/2, with α = max(|u| + c)
+3. WENO3 reconstruction of the numerical flux at each face using two 2nd-order candidate substencils (optimal weights d₀ = 1/3, d₁ = 2/3) with Jiang-Shu smoothness indicators βₖ = (Δf)²
+4. Forward-Euler conservative update on interior cells, converted back to primitives
+5. Transmissive (zero-gradient) BCs on the two ghost cells per side
+
+Requires **two ghost cells per side** (4 total, matching the `roe` / `lax_wendroff` convention), so scenarios use nx = 504 for 500 interior cells. Forward Euler with WENO is conditionally stable but does not preserve the SSP property of the spatial reconstruction; sharp shocks can produce small oscillations.
+
+References:
+- Jiang, G. S., & Shu, C. W. (1996). Efficient implementation of weighted ENO schemes. Journal of Computational Physics, 126(1), 202-228.
+- Shu, C. W. (1998). Essentially non-oscillatory and weighted essentially non-oscillatory schemes for hyperbolic conservation laws. In Advanced Numerical Approximation of Nonlinear Hyperbolic Equations (pp. 325-432). Springer.
+
+#### WENO5 (fifth-order)
+A fifth-order extension of the same approach. WENO5 uses a 5-cell stencil with three 3rd-order candidate substencils and the classical Jiang-Shu weights (d₀ = 0.1, d₁ = 0.6, d₂ = 0.3) for the reconstruction at each face. The time integration is forward Euler (1st-order in time, formally 5th-order in space in smooth regions).
+
+The per-step structure mirrors WENO3, except:
+- The WENO5 stencil spans five cells, requiring **three ghost cells on each side** (6 total) — one more than the other solvers. Scenarios use nx = 506 for 500 interior cells.
+- The reconstruction at face i+1/2 uses f⁺ on cells {i−2, …, i+2} and f⁻ on cells {i−1, …, i+3}.
+
+Forward Euler with WENO is conditionally stable but does not preserve the SSP property; if oscillations appear at strong shocks, the spatial scheme should be wrapped with RK3-SSP.
+
+References:
+- Jiang, G. S., & Shu, C. W. (1996). Efficient implementation of weighted ENO schemes. Journal of Computational Physics, 126(1), 202-228.
+- Shu, C. W. (1998). Essentially non-oscillatory and weighted essentially non-oscillatory schemes for hyperbolic conservation laws. In Advanced Numerical Approximation of Nonlinear Hyperbolic Equations (pp. 325-432). Springer.
+
 ### Running the code
 
 Numerical methods are written in Fortran and plotting routines are implemented in Python's Matplotlib library.  Running the fortran is easiest by using [fpm](https://fpm.fortran-lang.org/) and running:
 ```bash
 fpm run
 ```
-A successful run will produce five CSV files in the `data` directory:
+A successful run will produce seven CSV files in the `data` directory:
 
 | File | Solver | Description |
 |------|--------|-------------|
@@ -94,6 +123,8 @@ A successful run will produce five CSV files in the `data` directory:
 | `sod_shock_lw.csv` | Lax-Wendroff | Sod shock tube (Euler equations) |
 | `sod_shock_roe.csv` | Roe | Sod shock tube (Euler equations) |
 | `slotted_cylinder.csv` | FCT (2D) | Zalesak's slotted cylinder in a rigid rotation field |
+| `sod_shock_weno3.csv` | WENO3 | Sod shock tube (WENO3 reconstruction, forward Euler) |
+| `sod_shock_weno5.csv` | WENO5 | Sod shock tube (WENO5 reconstruction, forward Euler) |
 
 GIF animations of model outputs are produced by running the Python plotting script.
 Set up a virtual environment with [uv](https://docs.astral.sh/uv/) (Python 3.11 or 3.12 required) and run:

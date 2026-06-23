@@ -116,15 +116,30 @@ fpm run
 ```
 A successful run will produce seven CSV files in the `data` directory:
 
-| File | Solver | Description |
-|------|--------|-------------|
-| `square_wave.csv` | FCT (1D) | Square wave advection using the Boris-Book flux limiter |
-| `dam_break.csv` | FCT (1D) | Dam break with operator splitting for the pressure gradient |
-| `sod_shock_lw.csv` | Lax-Wendroff | Sod shock tube (Euler equations) |
-| `sod_shock_roe.csv` | Roe | Sod shock tube (Euler equations) |
-| `slotted_cylinder.csv` | FCT (2D) | Zalesak's slotted cylinder in a rigid rotation field |
-| `sod_shock_weno3.csv` | WENO3 | Sod shock tube (WENO3 reconstruction, forward Euler) |
-| `sod_shock_weno5.csv` | WENO5 | Sod shock tube (WENO5 reconstruction, forward Euler) |
+| File | Executable | Solver | Description |
+|------|------------|--------|-------------|
+| `square_wave.csv` | `square-wave` | FCT (1D) | Square wave advection using the Boris-Book flux limiter |
+| `dam_break.csv` | `dam-break` | FCT (1D) | Dam break with operator splitting for the pressure gradient |
+| `sod_shock_lw.csv` | `sod-shock-lw` | Lax-Wendroff | Sod shock tube (Euler equations) |
+| `sod_shock_roe.csv` | `sod-shock-roe` | Roe | Sod shock tube (Euler equations) |
+| `slotted_cylinder.csv` | `slotted-cylinder` | FCT (2D) | Zalesak's slotted cylinder in a rigid rotation field |
+| `sod_shock_weno3.csv` | `sod-shock-weno3` | WENO3 | Sod shock tube (WENO3 reconstruction, forward Euler) |
+| `sod_shock_weno5.csv` | `sod-shock-weno5` | WENO5 | Sod shock tube (WENO5 reconstruction, forward Euler) |
+
+#### Running an individual model
+
+Each model also builds as its own executable, so you can run any single one without running the rest. Pass the executable name (from the table above) to `fpm run`:
+
+```bash
+fpm run sod-shock-weno5      # run just the WENO5 Sod shock tube
+fpm run slotted-cylinder     # run just the 2D slotted cylinder
+```
+
+To see every available target:
+
+```bash
+fpm run --list
+```
 
 GIF animations of model outputs are produced by running the Python plotting script.
 Set up a virtual environment with [uv](https://docs.astral.sh/uv/) (Python 3.11 or 3.12 required) and run:

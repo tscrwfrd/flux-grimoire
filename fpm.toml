@@ -5,10 +5,44 @@ author = "Trevor Crawford"
 maintainer = "crawford.trevor@gmail.com"
 copyright = "Copyright 2025, Trevor Crawford"
 [build]
-auto-executables = true
+auto-executables = false
 auto-tests = true
 auto-examples = true
 module-naming = false
+
+# Default executable: runs every model in sequence (app/main.f90)
+[[executable]]
+name = "fluid-forge"
+main = "main.f90"
+
+# Individual model runs
+[[executable]]
+name = "square-wave"
+main = "square_wave.f90"
+
+[[executable]]
+name = "dam-break"
+main = "dam_break.f90"
+
+[[executable]]
+name = "sod-shock-lw"
+main = "sod_shock_lw.f90"
+
+[[executable]]
+name = "sod-shock-roe"
+main = "sod_shock_roe.f90"
+
+[[executable]]
+name = "sod-shock-weno3"
+main = "sod_shock_weno3.f90"
+
+[[executable]]
+name = "sod-shock-weno5"
+main = "sod_shock_weno5.f90"
+
+[[executable]]
+name = "slotted-cylinder"
+main = "slotted_cylinder.f90"
 [install]
 library = false
 test = false

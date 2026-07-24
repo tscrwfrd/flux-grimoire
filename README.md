@@ -108,6 +108,33 @@ References:
 - Jiang, G. S., & Shu, C. W. (1996). Efficient implementation of weighted ENO schemes. Journal of Computational Physics, 126(1), 202-228.
 - Shu, C. W. (1998). Essentially non-oscillatory and weighted essentially non-oscillatory schemes for hyperbolic conservation laws. In Advanced Numerical Approximation of Nonlinear Hyperbolic Equations (pp. 325-432). Springer.
 
+### Code architecture
+
+The library is built around a parent module, `fluid_forge`, that declares the public interface for every solver. Each scheme lives in its own **submodule** so that a single source file maps cleanly to the part of the algorithm that corresponds to its source paper:
+
+| File | Contains |
+|------|----------|
+| `src/fluid_forge.f90` | Parent module: public interface declarations (`fct`, `fct_2d`, `lax_wendroff`, `lax_friedrichs`, `roe`, `weno3`, `weno5`) |
+| `src/euler_core.f90` | **Shared physics for the 1D Euler solvers** (see below) |
+| `src/lax_wendroff_solver.f90` | Lax-Wendroff (Richtmyer two-step) submodule |
+| `src/lax_friedrichs_solver.f90` | Lax-Friedrichs submodule |
+| `src/roe_solver.f90` | Roe approximate Riemann solver + Roe-average eigendecomposition |
+| `src/weno3_solver.f90` | WENO3 reconstruction submodule |
+| `src/weno5_solver.f90` | WENO5 reconstruction submodule |
+| `src/fct_solver.f90`, `src/fct_2d_solver.f90` | 1D and 2D flux-corrected transport |
+| `src/fluid_1d_models.f90`, `src/fluid_2d_models.f90` | Scenario drivers that set up each test case and write the CSV output |
+
+#### Shared Euler physics (`euler_core`)
+
+Every finite-volume scheme for the Euler equations advances the same conserved state and uses the same physical flux; only the *numerical* interface flux F_{i+1/2} differs between schemes. `euler_core` centralises the parts that are common to all of them:
+
+- `gamma_g` — the single canonical ratio of specific heats (γ = 1.4) used by every Euler solver.
+- `prim_to_cons_flux(rho, u, p, u_cons, f_phys)` — primitives → conserved vector `U = (ρ, ρu, E)` **and** physical flux `F(U) = (ρu, ρu² + p, u(E + p))`, computed together to share the energy term.
+- `flux_from_cons(u_cons)` — physical flux evaluated directly from a conserved vector, for predictor-corrector schemes (e.g. Lax-Wendroff) whose intermediate state is conserved rather than primitive.
+- `cons_to_prim(u_cons, rho, u, p)` — conserved vector → primitives.
+
+The `lax_wendroff`, `roe`, `weno3`, and `weno5` submodules all `use euler_core` for these operations, so the equation of state lives in exactly one place. Each solver's file is left focused on the numerical flux that maps to its source paper — the Roe-average eigenstructure, the WENO reconstruction weights, and so on.
+
 ### Running the code
 
 Numerical methods are written in Fortran and plotting routines are implemented in Python's Matplotlib library.  Running the fortran is easiest by using [fpm](https://fpm.fortran-lang.org/) and running:

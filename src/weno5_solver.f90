@@ -1,8 +1,8 @@
 submodule (fluid_forge) weno5_impl
   use iso_fortran_env, only: real64, int32
+  use euler_core, only: prim_to_cons_flux, cons_to_prim, gamma_g
   implicit none
 
-  real(real64), parameter :: gamma_g  = 1.4_real64
   real(real64), parameter :: weno_eps = 1.0e-6_real64
 
   contains
@@ -59,27 +59,19 @@ submodule (fluid_forge) weno5_impl
   !> @param [in]    dx    Grid spacing
   module procedure weno5
     integer(int32) :: i, k
-    real(real64) :: dtdx, alpha
-    real(real64) :: u_loc, c_loc, p_loc, rho_loc
+    real(real64) :: dtdx, alpha, c_loc
     real(real64) :: u_cons(3, nx), f_phys(3, nx)
     real(real64) :: fp(3, nx), fm(3, nx)
     real(real64) :: f_face(3, nx)
 
     dtdx = dt / dx
 
+    ! Primitive -> conserved + physical flux (shared EOS) + global max wave speed
     alpha = 0.0_real64
     do i = 1, nx
-      rho_loc = rho(i)
-      u_loc   = vel(i)
-      p_loc   = prs(i)
-      u_cons(1, i) = rho_loc
-      u_cons(2, i) = rho_loc * u_loc
-      u_cons(3, i) = p_loc / (gamma_g - 1.0_real64) + 0.5_real64 * rho_loc * u_loc**2
-      c_loc = sqrt(gamma_g * p_loc / rho_loc)
-      f_phys(1, i) = u_cons(2, i)
-      f_phys(2, i) = u_cons(2, i) * u_loc + p_loc
-      f_phys(3, i) = u_loc * (u_cons(3, i) + p_loc)
-      alpha = max(alpha, abs(u_loc) + c_loc)
+      call prim_to_cons_flux(rho(i), vel(i), prs(i), u_cons(:, i), f_phys(:, i))
+      c_loc = sqrt(gamma_g * prs(i) / rho(i))
+      alpha = max(alpha, abs(vel(i)) + c_loc)
     end do
 
     ! Lax-Friedrichs flux splitting
@@ -107,9 +99,7 @@ submodule (fluid_forge) weno5_impl
       do k = 1, 3
         u_cons(k, i) = u_cons(k, i) - dtdx * (f_face(k, i) - f_face(k, i-1))
       end do
-      rho(i) = u_cons(1, i)
-      vel(i) = u_cons(2, i) / u_cons(1, i)
-      prs(i) = (gamma_g - 1.0_real64) * (u_cons(3, i) - 0.5_real64 * u_cons(2, i)**2 / u_cons(1, i))
+      call cons_to_prim(u_cons(:, i), rho(i), vel(i), prs(i))
       if (prs(i) < 0.0_real64) then
         print *, "Ew...negative pressures being calculated."
       end if

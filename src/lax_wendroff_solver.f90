@@ -1,5 +1,6 @@
 submodule (fluid_forge) lax_wendroff_impl
   use iso_fortran_env, only: real64, int32
+  use euler_core, only: prim_to_cons_flux, flux_from_cons, cons_to_prim
   implicit none
 
   contains
@@ -37,51 +38,24 @@ submodule (fluid_forge) lax_wendroff_impl
     !> @param [in]    dt     Time step size
     !> @param [in]    dx     Grid spacing
     module procedure lax_wendroff
-      real(real64), parameter :: gamma = 1.4
       integer(int32) :: i
-      real(real64) :: eng, prsh, flux(9), W(9), uph(3), umh(3), uve(3)
+      real(real64) :: flux(9), W(9), uph(3), umh(3), uve(3), fph(3), fmh(3)
 
       do i = 3, nx - 2
-      ! conserved quantities
-      W(1) = rho(i-1)
-      W(2) = rho(i-1)*vel(i-1)
-      W(3) = rho(i-1)*((prs(i-1)/((gamma - 1.0)*rho(i-1))) + 0.5*vel(i-1)**2)
-      W(4) = rho(i)
-      W(5) = rho(i)*vel(i)
-      W(6) = rho(i)*((prs(i)/((gamma - 1.0)*rho(i))) + 0.5*vel(i)**2)
-      W(7) = rho(i+1)
-      W(8) = rho(i+1)*vel(i+1)
-      W(9) = rho(i+1)*((prs(i+1)/((gamma - 1.0)*rho(i+1))) + 0.5*vel(i+1)**2)
+      ! conserved quantities + physical flux at j-1, j, j+1 (shared EOS)
+      call prim_to_cons_flux(rho(i-1), vel(i-1), prs(i-1), W(1:3), flux(1:3))
+      call prim_to_cons_flux(rho(i),   vel(i),   prs(i),   W(4:6), flux(4:6))
+      call prim_to_cons_flux(rho(i+1), vel(i+1), prs(i+1), W(7:9), flux(7:9))
 
-
-      ! Fluxes 
-      ! j-1
-      eng = prs(i-1)/((gamma-1.0)*rho(i-1)) + 0.5*vel(i-1)**2
-      flux(1) = rho(i-1)*vel(i-1)
-      flux(2) = rho(i-1)*vel(i-1)**2 + prs(i-1)
-      flux(3) = vel(i-1)*(rho(i-1)*eng + prs(i-1))
-
-      ! now update the solution for location i-1
+      ! now update the solution for location i-1 (full-step result from the
+      ! previous iteration). Done after W(1:3)/flux(1:3) are read so the j-1
+      ! stencil still uses the pre-update primitives.
       if (i > 3) then
-        rho(i-1) = uve(1)
-        vel(i-1) = uve(2)/uve(1)
-        prs(i-1) = (gamma - 1.0)*uve(1)*((uve(3)/uve(1)) - 0.5*vel(i-1)**2)
+        call cons_to_prim(uve, rho(i-1), vel(i-1), prs(i-1))
         if(prs(i-1) < 0.0) then
           print*, "Ew...negative pressures being calculated."
         end if
-      end if 
-
-      ! j
-      eng = prs(i)/((gamma-1.0)*rho(i)) + 0.5*vel(i)**2
-      flux(4) = rho(i)*vel(i)
-      flux(5) = rho(i)*vel(i)**2 + prs(i)
-      flux(6) = vel(i)*(rho(i)*eng + prs(i))
-
-      !j+1
-      eng = prs(i+1)/((gamma-1.0)*rho(i+1)) + 0.5*vel(i+1)**2
-      flux(7) = rho(i+1)*vel(i+1)
-      flux(8) = rho(i+1)*vel(i+1)**2 + prs(i+1)
-      flux(9) = vel(i+1)*(rho(i+1)*eng + prs(i+1))
+      end if
 
       ! half time step
       uph = 0.5*(W(4:6) + W(7:9)) -   &
@@ -89,36 +63,22 @@ submodule (fluid_forge) lax_wendroff_impl
       umh = 0.5*(W(4:6) + W(1:3)) -   &
             dt/(2.0*dx)*(flux(4:6) - flux(1:3))
 
-      ! flux j + 1/2
-      uph(2) = uph(2)/uph(1)
-      uph(3) = uph(3)/uph(1)
-      prsh = (gamma - 1.0)*uph(1)*(uph(3) - 0.5*uph(2)**2)
-      flux(1) = uph(1)*uph(2)
-      flux(2) = uph(1)*uph(2)**2 + prsh
-      flux(3) = uph(2)*(uph(1)*uph(3) + prsh)
-      
-      ! flux j - 1/2
-      umh(2) = umh(2)/umh(1)
-      umh(3) = umh(3)/umh(1)
-      prsh = (gamma - 1.0)*umh(1)*(umh(3) - 0.5*umh(2)**2)
-      flux(4) = umh(1)*umh(2)
-      flux(5) = umh(1)*umh(2)**2 + prsh
-      flux(6) = umh(2)*(umh(1)*umh(3) + prsh)
+      ! physical flux at the half-step (conserved) states
+      fph = flux_from_cons(uph)
+      fmh = flux_from_cons(umh)
 
       ! Full time step
-      uve = W(4:6) - dt/dx*(flux(1:3) - flux(4:6))
+      uve = W(4:6) - dt/dx*(fph - fmh)
 
       ! update since this is last location to compute
       if (i==nx-2) then
-        rho(i) = uve(1)
-        vel(i) = uve(2)/uve(1)
-        prs(i) = (gamma - 1.0) * uve(1) * ((uve(3)/uve(1)) - 0.5*vel(i)**2)
+        call cons_to_prim(uve, rho(i), vel(i), prs(i))
         if(prs(i) < 0.0) then
           print*, "Ew...negative pressures being calculated."
         end if
       end if
 
-    end do    
+    end do
     
     ! boundary cells
     rho(1) = rho(3)

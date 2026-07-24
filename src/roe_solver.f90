@@ -1,5 +1,6 @@
 submodule (fluid_forge) roe_solver_impl
   use iso_fortran_env, only: real64, int32
+  use euler_core, only: prim_to_cons_flux, cons_to_prim, gamma => gamma_g
   implicit none
 
   contains
@@ -42,44 +43,20 @@ submodule (fluid_forge) roe_solver_impl
     !> @param [in]    dt     Time step size
     !> @param [in]    dx     Grid spacing
     module procedure roe
-      real(real64), parameter :: gamma = 1.4
       integer(int32) :: i
       real(real64) :: flux(9), w(9), diff(3), qnty(3), update(3), roe_flux(3, 2)
       real(real64) :: eigvec(3, 3), eigvecinv(3, 3), diag(3,3), roe_jac(3,3)
-      real(real64) :: dtdx, eng
+      real(real64) :: dtdx
       dtdx = dt/dx
 
       do i=3, nx-2
 
-        !fluxes
-        ! j-1
-        eng = prs(i-1)/((gamma-1.0)*rho(i-1)) + 0.5*vel(i-1)**2
-        flux(1) = rho(i-1)*vel(i-1)
-        flux(2) = rho(i-1)*vel(i-1)**2 + prs(i-1)
-        flux(3) = vel(i-1)*(rho(i-1)*eng + prs(i-1))
-        ! j
-        eng = prs(i)/((gamma-1.0)*rho(i)) + 0.5*vel(i)**2
-        flux(4) = rho(i)*vel(i)
-        flux(5) = rho(i)*vel(i)**2 + prs(i)
-        flux(6) = vel(i)*(rho(i)*eng + prs(i))
-        ! j+1
-        eng = prs(i+1)/((gamma-1.0)*rho(i+1)) + 0.5*vel(i+1)**2
-        flux(7) = rho(i+1)*vel(i+1)
-        flux(8) = rho(i+1)*vel(i+1)**2 + prs(i+1)
-        flux(9) = vel(i+1)*(rho(i+1)*eng + prs(i+1))
+        ! conserved variables (density, momentum, energy) + physical flux
+        ! at i-1, i, and i+1 (shared EOS from euler_core)
+        call prim_to_cons_flux(rho(i-1), vel(i-1), prs(i-1), w(1:3), flux(1:3))
+        call prim_to_cons_flux(rho(i),   vel(i),   prs(i),   w(4:6), flux(4:6))
+        call prim_to_cons_flux(rho(i+1), vel(i+1), prs(i+1), w(7:9), flux(7:9))
 
-        ! Store conserved variables (density, momentum, energy)
-        ! at i-1, i, and i+1
-        w(1) = rho(i-1)
-        w(2) = rho(i-1)*vel(i-1)
-        w(3) = rho(i-1)*((prs(i-1)/((gamma - 1.0)*rho(i-1))) + 0.5*vel(i-1)**2)
-        w(4) = rho(i)
-        w(5) = rho(i)*vel(i)
-        w(6) = rho(i)*((prs(i)/((gamma - 1.0)*rho(i))) + 0.5*vel(i)**2)
-        w(7) = rho(i+1)
-        w(8) = rho(i+1)*vel(i+1)
-        w(9) = rho(i+1)*((prs(i+1)/((gamma - 1.0)*rho(i+1))) + 0.5*vel(i+1)**2)
-        
         ! Compute Roe flux at i+1/2 interface
         call jac_decomp(rho, vel, prs, i-1, eigvec, eigvecinv, diag)
         roe_jac = matmul(eigvec, diag)
@@ -106,10 +83,8 @@ submodule (fluid_forge) roe_solver_impl
         w(4:6) = w(4:6) - dtdx*(roe_flux(:, 2) - roe_flux(:, 1))
 
         ! Update primitive variables from conserved variable
-        if (i > 3) then 
-          rho(i-1) = update(1)
-          vel(i-1) = update(2)/update(1)
-          prs(i-1) = (gamma - 1.0_real64)*update(1)*((update(3)/update(1)) - 0.5_real64*vel(i-1)**2)
+        if (i > 3) then
+          call cons_to_prim(update, rho(i-1), vel(i-1), prs(i-1))
           if(prs(i-1) < 0.0) then
             print*, "Ew...negative pressures being calculated."
           end if
@@ -118,10 +93,8 @@ submodule (fluid_forge) roe_solver_impl
         update = w(4:6)
 
         ! Update last point in loop
-        if (i == nx-2) then 
-          rho(i) = update(1)
-          vel(i) = update(2)/update(1)
-          prs(i) = (gamma - 1.0_real64)*update(1)*((update(3)/update(1)) - 0.5_real64*vel(i)**2)
+        if (i == nx-2) then
+          call cons_to_prim(update, rho(i), vel(i), prs(i))
           if(prs(i) < 0.0) then
             print*, "Ew...negative pressures being calculated."
           end if
@@ -184,7 +157,6 @@ submodule (fluid_forge) roe_solver_impl
       real(real64), intent(in) :: rho(:), vel(:), prs(:)
       integer(int32), intent(in) :: idx
       real(real64), intent(out) :: eigvec(3,3), eigvecinv(3,3), diag(3,3)
-      real(real64), parameter :: gamma = 1.4
       real(real64) :: rhoavg, velavg, enthalpy_avg, enthalpy(2), cs, &
                         denom, alpha
       
